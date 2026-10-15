@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy & Data Policy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="card" style="max-width:600px">
+    <h1>Privacy & Data Policy</h1>
+    <div class="encourage"><b>Your voice matters.</b> Speaking up is never weakness - it's courage.</div>
+    <div class="policy">
+      <p><b>Confidentiality.</b> Your identity is kept confidential and is only accessed when necessary for an authorized investigation.</p>
+      <p><b>What we collect.</b> Your name, email, and the details and evidence you submit with a concern.</p>
+      <p><b>Who can see it.</b> Only authorized HR administrators. Reports and Trends use aggregated data only.</p>
+      <p><b>How it is used.</b> To review, investigate, and resolve workplace concerns, and to improve workplace policies and support.</p>
+      <p><b>Your rights.</b> You can track the status of your reports at any time.</p>
+    </div>
+    <label class="check"><input type="checkbox" id="agree"> I have read and accept this policy.</label>
+    <button class="btn" id="accept">Accept & Continue</button>
+    <div class="error" id="err"></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = currentUser();
+    if (!u) location.href = 'index.html';
+    document.getElementById('accept').onclick = () => {
+      if (!document.getElementById('agree').checked)
+        return document.getElementById('err').textContent = 'Please tick the box to continue.';
+      continueAfterPolicy(u);
+    };
+  </script>
+</body>
+</html>

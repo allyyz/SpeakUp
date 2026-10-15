@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reports & Trends</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+  <div class="wrap">
+    <h2>Reports & Trends</h2>
+    <p>Aggregated data only. No employee identities are shown here.</p>
+    <div class="stats" id="stats"></div>
+    <div class="panel"><h3>Concern Types</h3><div id="types"></div><div id="insight"></div></div>
+    <div class="panel"><h3>Case Status</h3><div id="status"></div></div>
+    <div class="panel"><h3>Priority</h3><div id="prio"></div></div>
+    <div class="panel"><h3>Reports Over Time</h3><div id="time"></div></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('hr');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+    const $ = id => document.getElementById(id);
+    const all = allReports();
+    const TYPES = ['Workplace Conflict', 'Unfair Treatment', 'Discrimination', 'Bullying', 'Harassment', 'Safety Concern', 'Other'];
+
+    function bars(rows) {
+      const max = Math.max(1, ...rows.map(r => r.n));
+      return rows.map(r => `<div class="bar">
+        <div class="lbl">${esc(r.label)}</div>
+        <div class="track"><div class="fill" style="width:${(r.n / max) * 100}%"></div></div>
+        <div class="num">${r.n}</div></div>`).join('');
+    }
+
+    const open = all.filter(r => !CLOSED.includes(r.status)).length;
+const resolved = all.filter(r => r.status === 'Resolved').length;
+const closedCount = all.length - open;
+const rate = closedCount ? Math.round((resolved / closedCount) * 100) : 0;
+    const box = (label, n) => `<div class="stat"><span>${n}</span>${label}</div>`;
+    $('stats').innerHTML = box('Total Reports', all.length) + box('Open Cases', open) +
+      box('Resolved', resolved) + box('Resolution Rate', rate + '%');
+
+    const types = countBy(all, 'type', TYPES);
+    $('types').innerHTML = bars(types);
+    const topType = types.slice().sort((a, b) => b.n - a.n)[0];
+$('insight').innerHTML = topType && topType.n
+  ? `<div class="insight">Most common concern: <b>${esc(topType.label)}</b> (${topType.n} of ${all.length}). Consider targeted training or policy review for this area.</div>`
+      : '';
+
+    $('status').innerHTML = bars(countBy(all, 'status', STATUSES));
+    $('prio').innerHTML = bars(countBy(all, 'priority', PRIORITIES));
+
+    const months = lastMonths(6).map(m => ({
+      label: m.label,
+      n: all.filter(r => {
+        const d = new Date(r.created);
+        return d.getFullYear() === m.y && d.getMonth() === m.m;
+      }).length
+    }));
+    $('time').innerHTML = bars(months);
+  </script>
+</body>
+</html>

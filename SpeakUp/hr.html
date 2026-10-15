@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HR Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+  <div class="wrap">
+    <h2 id="hello"></h2>
+    <div class="stats six" id="stats"></div>
+    <div class="actions">
+      <a href="cases.html">Manage Cases</a>
+      <a href="trends.html">Reports & Trends</a>
+    </div>
+    <div class="panel"><h3>Latest Cases</h3><div id="recent"></div></div>
+    <div class="panel"><h3>Notifications</h3><div id="notifs"></div></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('hr');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+
+    document.getElementById('hello').textContent = 'Welcome, ' + u.name;
+    const all = allReports();
+    const box = (label, n) => `<div class="stat"><span>${n}</span>${label}</div>`;
+    document.getElementById('stats').innerHTML =
+  box('Total Cases', all.length) +
+  STATUSES.map(s => box(s, all.filter(r => r.status === s).length)).join('');
+
+    document.getElementById('recent').innerHTML = all.length
+      ? all.slice(0, 5).map(r =>
+          `<p><b>${esc(r.id)}</b> · ${esc(r.title)}<br>
+           <span class="badge">${esc(r.type)}</span> <span class="badge">${esc(r.status)}</span></p>`).join('')
+      : '<p>No cases yet.</p>';
+
+    const n = myNotifs(u);
+    document.getElementById('notifs').innerHTML = n.length
+      ? n.slice(0, 5).map(x => `<p>${esc(x.text)}<br><small>${esc(x.date)}</small></p>`).join('')
+      : '<p>No notifications yet.</p>';
+  </script>
+</body>
+</html>

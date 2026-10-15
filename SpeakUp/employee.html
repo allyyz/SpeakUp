@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employee Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+
+  <div class="wrap">
+    <div class="banner">
+      <h2 id="hello"></h2>
+      <p id="quote"></p>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel">
+      <h3>Your Latest Report</h3>
+      <div id="latest"></div>
+    </div>
+
+    <div class="actions">
+      <a href="submit.html">Submit a Concern</a>
+      <a href="my-reports.html">My Reports</a>
+    </div>
+
+    <div class="panel">
+      <h3>How it works</h3>
+      <div class="how">
+        <div><span class="n">1</span><b>Submit</b>Share your concern</div>
+        <div><span class="n">2</span><b>Review</b>HR looks at it</div>
+        <div><span class="n">3</span><b>Investigation</b>If needed</div>
+        <div><span class="n">4</span><b>Resolved</b>You get an update</div>
+      </div>
+    </div>
+<div class="panel">
+  <h3>Tips for a good report</h3>
+  <ul class="tips">
+    <li>Include the date, time, and place.</li>
+    <li>Describe what happened in your own words.</li>
+    <li>Mention who was involved or who saw it.</li>
+    <li>Attach evidence if you have any.</li>
+  </ul>
+</div>
+
+<div class="panel support">
+  <h3>Need support?</h3>
+  <p>Your identity stays protected.</p>
+  <p>Contact HR: hr@company.com</p>
+</div>
+    <div class="panel"><h3>Notifications</h3><div id="notifs"></div></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('employee');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+
+    const QUOTES = [
+      "Speaking up is never weakness - it's courage.",
+      "Every concern raised helps make our workplace better.",
+      "You are not alone. We are here to listen.",
+      "Your voice can change things for the better.",
+      "Small steps toward speaking up make a big difference."
+    ];
+    document.getElementById('hello').textContent = 'Welcome, ' + u.name;
+    document.getElementById('quote').textContent = QUOTES[Math.floor(Date.now() / 86400000) % QUOTES.length];
+
+    const mine = myReports(u);
+    const box = (label, n) => `<div class="stat"><span>${n}</span>${label}</div>`;
+    document.getElementById('stats').innerHTML =
+      box('Total', mine.length) +
+      STATUSES.map(s => box(s, mine.filter(r => r.status === s).length)).join('');
+
+    if (mine.length) {
+      const r = mine[0];
+      const steps = stepsHTML(r.status);
+      document.getElementById('latest').innerHTML =
+        `<small>${esc(r.id)} · ${esc(r.date)}</small>
+         <h3 style="margin:.3rem 0">${esc(r.title)}</h3>
+         <span class="badge">${esc(r.type)}</span>
+         <div class="steps">${steps}</div>`;
+    } else {
+      document.getElementById('latest').innerHTML =
+        '<p>You have not submitted a concern yet. <a href="submit.html">Submit your first concern</a>.</p>';
+    }
+
+    const n = myNotifs(u);
+    document.getElementById('notifs').innerHTML = n.length
+      ? n.slice(0, 5).map(x => `<p>${esc(x.text)}<br><small>${esc(x.date)}</small></p>`).join('')
+      : '<p>No notifications yet.</p>';
+  </script>
+</body>
+</html>

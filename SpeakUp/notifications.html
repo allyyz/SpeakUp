@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+
+  <div class="wrap">
+    <div class="head">
+      <h2>Notifications</h2>
+      <button class="btn alt" onclick="readAll()">Mark all as read</button>
+    </div>
+    <div id="list"></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = currentUser();
+    if (!u) location.href = 'index.html';
+    if (!policyOK()) location.href = 'privacy.html';
+
+    function render() {
+      document.getElementById('nav').innerHTML = navHTML(u);
+      const all = DB.get('notifications', []);
+      const rows = all.map((n, i) => ({ n, i })).filter(x => x.n.email === u.email);
+      document.getElementById('list').innerHTML = rows.length
+        ? rows.map(({ n, i }) => `<div class="notif ${n.read ? '' : 'unread'}">
+            ${esc(n.text)}<br><small>${esc(n.date)}</small>
+            ${n.read ? '' : `<br><button onclick="readOne(${i})">Mark as read</button>`}
+          </div>`).join('')
+        : '<div class="panel">No notifications yet.</div>';
+    }
+    function readOne(i) {
+      const all = DB.get('notifications', []);
+      all[i].read = true;
+      DB.set('notifications', all);
+      render();
+    }
+    function readAll() {
+      const all = DB.get('notifications', []);
+      all.forEach(n => { if (n.email === u.email) n.read = true; });
+      DB.set('notifications', all);
+      render();
+    }
+    render();
+  </script>
+</body>
+</html>

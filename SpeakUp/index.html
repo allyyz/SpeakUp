@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpeakUp</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="card">
+    <h1><span id="logo"></span> SpeakUp</h1>
+    <p>A safe, confidential way to report workplace concerns.</p>
+    <div class="tabs">
+      <button id="tLogin" class="active">Login</button>
+      <button id="tSignup">Create Account</button>
+    </div>
+
+    <div id="signupOnly" class="hidden">
+  <label>Employee ID</label><input id="empId" placeholder="e.g. EMP-001">
+  <label>Full name</label><input id="name">
+</div>
+    <label>Email</label><input id="email" type="email">
+    <label>Password</label><input id="password" type="password">
+    <button class="btn" id="go">Login</button>
+    <div class="error" id="err"></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    let mode = 'login';
+    const $ = id => document.getElementById(id);
+      $('logo').innerHTML = LOGO;
+
+    function setMode(m) {
+      mode = m;
+      $('tLogin').classList.toggle('active', m === 'login');
+      $('tSignup').classList.toggle('active', m === 'signup');
+      $('signupOnly').classList.toggle('hidden', m === 'login');
+      $('go').textContent = m === 'login' ? 'Login' : 'Create Account';
+      $('err').textContent = '';
+    }
+    $('tLogin').onclick = () => setMode('login');
+    $('tSignup').onclick = () => setMode('signup');
+
+$('go').onclick = () => {
+  const email = $('email').value.trim().toLowerCase();
+  const password = $('password').value;
+  const users = DB.get('users', []);
+  $('err').style.color = '#c0392b';
+  if (!email || !password) return $('err').textContent = 'Please fill in all fields.';
+
+  if (mode === 'signup') {
+    const name = $('name').value.trim();
+    const empId = $('empId').value.trim().toUpperCase();
+    if (!empId || !name) return $('err').textContent = 'Please enter your Employee ID and name.';
+    if (users.find(u => u.email === email)) return $('err').textContent = 'Email already registered.';
+    const match = directory().find(d => d.id === empId && d.email === email &&
+      d.name.toLowerCase() === name.toLowerCase());
+    if (!match) return $('err').textContent = 'Your details do not match the employee directory. Please contact HR.';
+    users.push({ name: match.name, email, password, role: 'employee', empId, status: 'Pending' });
+    DB.set('users', users);
+    $('err').style.color = '#1e8449';
+    $('err').textContent = 'Account request sent! HR must approve it before you can log in.';
+    return;
+  } else {
+    const user = users.find(u => u.email === email && u.password === password);
+    if (!user) return $('err').textContent = 'Incorrect email or password.';
+    if (user.status === 'Pending') return $('err').textContent = 'Your account is waiting for HR approval.';
+    if (user.status === 'Rejected') return $('err').textContent = 'Your account request was not approved. Please contact HR.';
+    DB.set('currentUser', user);
+    goHome(user);
+  }
+};
+  </script>
+</body>
+</html>

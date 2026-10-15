@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Reports</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+  <div class="wrap">
+    <h2>My Reports</h2>
+    <div id="list"></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('employee');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+
+    const mine = myReports(u);
+    document.getElementById('list').innerHTML = mine.length
+      ? mine.map(r => {
+         const steps = stepsHTML(r.status);
+          return `<div class="report">
+            <small>${esc(r.id)} · ${esc(r.date)}</small>
+            <h3>${esc(r.title)}</h3>
+            <span class="badge">${esc(r.type)}</span>
+            <div class="steps">${steps}</div>
+            <p>${esc(r.desc)}</p>
+            ${evidenceHTML(r)}
+            ${CLOSED.includes(r.status) && r.resolution ? `<div class="identity" style="background:#e8f6f6;border-color:#0fa3a3"><b>Outcome of your concern</b><br>${esc(r.resolution).replace(/\n/g, '<br>')}</div>` : ''}
+            ${CLOSED.includes(r.status) ? `<button class="btn alt" onclick="removeReport('${r.id}')">Delete from my view</button>` : ''}
+          </div>`;
+        }).join('')
+      : '<div class="panel">No reports yet. <a href="submit.html">Submit your first concern</a>.</div>';
+      function removeReport(id) {
+  if (!confirm('Remove this report from your view? HR will still keep their record.')) return;
+  updateReport(id, { hidden: true });
+  location.reload();
+}
+  </script>
+</body>
+</html>

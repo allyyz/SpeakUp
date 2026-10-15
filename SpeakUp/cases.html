@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Case Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+  <div class="wrap">
+    <h2>Case Management</h2>
+    <label>Filter by status</label>
+    <select id="filter"></select>
+    <div id="list"></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('hr');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+    const $ = id => document.getElementById(id);
+    const opts = (arr, sel) => arr.map(x => `<option ${x === sel ? 'selected' : ''}>${x}</option>`).join('');
+    const revealed = new Set();
+
+    $('filter').innerHTML = '<option value="">All</option>' + opts(STATUSES);
+    $('filter').onchange = render;
+
+    function render() {
+      const open = new Set([...document.querySelectorAll('details[open]')].map(d => d.dataset.id));
+      const f = $('filter').value;
+      const list = allReports().filter(r => !f || r.status === f);
+      const users = DB.get('users', []);
+
+      $('list').innerHTML = list.length ? list.map(r => {
+        const owner = users.find(x => x.email === r.owner);
+        const logs = (r.accessLog || []).length;
+        const identity = revealed.has(r.id)
+          ? `<div class="identity"><b>${esc(owner ? owner.name : 'Unknown')}</b><br>${esc(r.owner)}</div>`
+          : `<button class="btn alt" onclick="reveal('${r.id}')">Reveal identity (logged)</button>`;
+        return `<details class="report" data-id="${r.id}" ${open.has(r.id) ? 'open' : ''}>
+          <summary><b>${esc(r.id)}</b> · ${esc(r.title)}<br>
+            <span class="badge">${esc(r.status)}</span>
+            <span class="badge p-${r.priority}">${esc(r.priority)}</span></summary>
+          <p><small>${esc(r.type)} · ${esc(r.date)}</small></p>
+          <p>${esc(r.desc)}</p>
+          ${evidenceHTML(r)}
+         ${CLOSED.includes(r.status) ? `
+  <div class="identity" style="background:#e8f6f6;border-color:#0fa3a3">
+    <b>Case closed: ${esc(r.status)}</b> · Priority: ${esc(r.priority)}<br>
+    <b>Resolution notes:</b><br>${esc(r.resolution || '-').replace(/\n/g, '<br>')}<br>
+    <small>This case is locked and can no longer be edited.</small>
+  </div>
+` : `
+  <div class="row">
+    <div><label>Status</label><select id="st-${r.id}">${opts(STATUSES, r.status)}</select></div>
+    <div><label>Priority</label><select id="pr-${r.id}">${opts(PRIORITIES, r.priority)}</select></div>
+  </div>
+  <label>Resolution notes (what happened, action taken, why it was closed)</label>
+  <textarea id="rn-${r.id}" placeholder="Explain the outcome of this case...">${esc(r.resolution || '')}</textarea>
+  <button class="btn" onclick="save('${r.id}')">Save Changes</button>
+`}
+          ${identity}
+          <small>Identity accessed ${logs} time(s).</small>
+        </details>`;
+      }).join('') : '<div class="panel">No cases found.</div>';
+    }
+
+    function save(id) {
+      const old = allReports().find(r => r.id === id);
+      if (CLOSED.includes(old.status)) return alert('This case is closed and can no longer be edited.');
+      const status = $('st-' + id).value;
+      const priority = $('pr-' + id).value;
+      const resolution = $('rn-' + id).value.trim();
+if (CLOSED.includes(status) && !resolution) return alert('Please write the resolution notes before closing this case.');
+      updateReport(id, { status, priority, resolution });
+      if (old.status !== status)
+        notify(old.owner, 'Your concern ' + id + ' is now: ' + status + '.');
+      render();
+    }
+
+    function reveal(id) {
+      const r = allReports().find(x => x.id === id);
+      const log = (r.accessLog || []).concat({ by: u.email, date: new Date().toLocaleString() });
+      updateReport(id, { accessLog: log });
+      revealed.add(id);
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>

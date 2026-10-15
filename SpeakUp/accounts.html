@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accounts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+
+  <div class="wrap">
+    <h2>Accounts</h2>
+
+    <div class="panel">
+      <h3>Add to Employee Directory</h3>
+      <p><small>Only people on this list can create an account.</small></p>
+      <div class="row">
+        <div><label>Employee ID</label><input id="dId" placeholder="e.g. EMP-001"></div>
+        <div><label>Full name</label><input id="dName"></div>
+        <div><label>Company email</label><input id="dEmail" type="email"></div>
+      </div>
+      <button class="btn" id="add">Add Employee</button>
+      <div class="error" id="err"></div>
+    </div>
+
+<div class="panel">
+  <h3>Add HR Admin</h3>
+  <p><small>Only an existing HR admin can create another HR account.</small></p>
+  <div class="row">
+    <div><label>Full name</label><input id="hName"></div>
+    <div><label>Email</label><input id="hEmail" type="email"></div>
+    <div><label>Temporary password</label><input id="hPass" type="text"></div>
+  </div>
+  <button class="btn" id="addHr">Add HR Admin</button>
+  <div class="error" id="hErr"></div>
+  <div id="hrList"></div>
+</div>
+
+    <div class="panel"><h3>Account Requests</h3><div id="pending"></div></div>
+    <div class="panel"><h3>Employee Directory</h3><div id="dir"></div></div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('hr');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    const $ = id => document.getElementById(id);
+    if (!policyOK()) location.href = 'privacy.html';
+
+    function render() {
+      const users = DB.get('users', []);
+      const pend = users.filter(x => x.role === 'employee' && x.status === 'Pending');
+      $('pending').innerHTML = pend.length ? pend.map(x =>
+        `<div class="notif unread"><b>${esc(x.name)}</b> (${esc(x.empId || '')})<br>${esc(x.email)}<br>
+         <button onclick="setStatus('${esc(x.email)}','Approved')">Approve</button>
+         <button style="background:#c0392b" onclick="setStatus('${esc(x.email)}','Rejected')">Reject</button></div>`
+      ).join('') : '<p>No pending requests.</p>';
+
+      const dir = directory();
+      $('dir').innerHTML = dir.length ? dir.map((d, i) => {
+        const acct = users.find(x => x.email === d.email);
+        return `<div class="notif"><b>${esc(d.name)}</b> (${esc(d.id)})<br>${esc(d.email)}<br>
+          <small>Account: ${acct ? esc(acct.status || 'Approved') : 'Not registered yet'}</small><br>
+          <button style="background:#c0392b" onclick="removeDir(${i})">Remove</button></div>`;
+      }).join('') : '<p>No employees in the directory yet.</p>';
+    }
+
+    $('add').onclick = () => {
+      $('err').textContent = '';
+      const id = $('dId').value.trim().toUpperCase();
+      const name = $('dName').value.trim();
+      const email = $('dEmail').value.trim().toLowerCase();
+      if (!id || !name || !email) return $('err').textContent = 'Please fill in all fields.';
+      const dir = directory();
+      if (dir.find(d => d.id === id || d.email === email))
+        return $('err').textContent = 'That ID or email is already in the directory.';
+      dir.push({ id, name, email });
+      saveDirectory(dir);
+      $('dId').value = $('dName').value = $('dEmail').value = '';
+      render();
+    };
+
+    function setStatus(email, status) {
+      const users = DB.get('users', []);
+      const x = users.find(a => a.email === email);
+      if (x) { x.status = status; DB.set('users', users); }
+      render();
+    }
+
+    function removeDir(i) {
+      if (!confirm('Remove this person from the directory?')) return;
+      const dir = directory();
+      const gone = dir.splice(i, 1)[0];
+      saveDirectory(dir);
+      const users = DB.get('users', []);
+      const x = users.find(a => a.email === gone.email && a.role === 'employee');
+      if (x) { x.status = 'Rejected'; DB.set('users', users); }
+      render();
+    }
+    $('addHr').onclick = () => {
+  const err = $('hErr');
+  err.style.color = '#c0392b';
+  err.textContent = '';
+  const name = $('hName').value.trim();
+  const email = $('hEmail').value.trim().toLowerCase();
+  const password = $('hPass').value;
+  if (!name || !email || !password) return err.textContent = 'Please fill in all fields.';
+  if (password.length < 6) return err.textContent = 'Password must be at least 6 characters.';
+  const users = DB.get('users', []);
+  if (users.find(x => x.email === email)) return err.textContent = 'Email already registered.';
+  users.push({ name, email, password, role: 'hr', status: 'Approved' });
+  DB.set('users', users);
+  $('hName').value = $('hEmail').value = $('hPass').value = '';
+  err.style.color = '#1e8449';
+  err.textContent = 'HR admin added. Share the temporary password with them privately.';
+  renderHr();
+};
+
+function renderHr() {
+  const hrs = DB.get('users', []).filter(x => x.role === 'hr');
+  $('hrList').innerHTML = '<p><small>Current HR admins:</small></p>' +
+    hrs.map(x => `<p>${esc(x.name)} · ${esc(x.email)} ${x.email !== u.email ? `<button style="background:#7b241c;color:#fff;border:0;border-radius:6px;padding:.3rem .7rem" onclick="deleteAccount('${esc(x.email)}')">Delete</button>` : '<small>(you)</small>'}</p>`).join('');
+}
+
+function deleteAccount(email) {
+  if (!confirm('Delete this account permanently? Their reports stay with HR.')) return;
+  const users = DB.get('users', []);
+  const target = users.find(a => a.email === email);
+  if (!target) return;
+  if (target.email === u.email) return alert('You cannot delete your own account.');
+  if (target.role === 'hr' && users.filter(a => a.role === 'hr').length <= 1)
+    return alert('You cannot delete the last HR admin.');
+  DB.set('users', users.filter(a => a.email !== email));
+  DB.set('directory', directory().filter(d => d.email !== email));
+  localStorage.removeItem('privacy:' + email);
+  render();
+  renderHr();
+}
+
+render();
+renderHr();
+</script>
+</html>

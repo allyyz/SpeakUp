@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy & Data</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+
+  <div class="wrap">
+    <h2>Privacy & Data</h2>
+
+    <div class="panel">
+      <h3>How your information is protected</h3>
+      <p><b>Confidentiality.</b> Employee identities are hidden from HR by default and only revealed when necessary for an authorized investigation.</p>
+      <p><b>Access logging.</b> Every time an identity is revealed, it is recorded in the case's access log.</p>
+      <p><b>Aggregated reporting.</b> Reports & Trends shows counts only, never names.</p>
+      <p><b>Limited access.</b> Only authorized HR administrators can view submitted concerns.</p>
+      <p><b>Your rights.</b> Employees can track the status of their own reports at any time.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Your data</h3>
+      <div id="mine"></div>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = currentUser();
+    if (!u) location.href = 'index.html';
+    if (!policyOK()) location.href = 'privacy.html';
+
+    document.getElementById('nav').innerHTML = navHTML(u);
+    document.getElementById('mine').innerHTML =
+      `<p>Name: <b>${esc(u.name)}</b><br>
+       Email: <b>${esc(u.email)}</b><br>
+       Role: <b>${u.role === 'hr' ? 'HR Administrator' : 'Employee'}</b><br>
+       Policy accepted: <b>Yes</b>` +
+      (u.role === 'employee' ? `<br>Reports submitted: <b>${myReports(u).length}</b>` : '') + '</p>';
+  </script>
+</body>
+</html>

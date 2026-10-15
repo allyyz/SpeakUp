@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset Reports</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="card">
+    <h1>Reset Reports</h1>
+    <p>This permanently deletes all reports and notifications in this browser. Accounts are kept.</p>
+    <button class="btn" id="r1">Delete all reports and notifications</button>
+    <div class="success" id="msg"></div>
+    <a class="btn alt" href="index.html">Go to Login</a>
+  </div>
+
+  <script>
+    document.getElementById('r1').onclick = () => {
+      if (!confirm('Delete ALL reports and notifications? Accounts will be kept.')) return;
+      localStorage.removeItem('reports');
+      localStorage.removeItem('notifications');
+      document.getElementById('msg').textContent = 'Done. All reports and notifications were deleted.';
+    };
+  </script>
+</body>
+</html>

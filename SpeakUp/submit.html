@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Submit a Concern</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar" id="nav"></div>
+  <div class="wrap">
+    <div class="panel">
+      <h2>Submit a Concern</h2>
+      <p>Your identity stays confidential and is only accessed when necessary for an authorized investigation.</p>
+
+      <label>Type of concern</label>
+      <select id="type">
+        <option value="">Select a type</option>
+        <option>Workplace Conflict</option>
+        <option>Unfair Treatment</option>
+        <option>Discrimination</option>
+        <option>Bullying</option>
+        <option>Harassment</option>
+        <option>Safety Concern</option>
+        <option>Other</option>
+      </select>
+
+      <label>Description</label>
+      <textarea id="desc" placeholder="What happened? When and where? Who was involved?"></textarea>
+
+      <label>Supporting evidence (optional)</label>
+      <input id="files" type="file" multiple>
+
+      <button class="btn" id="send">Submit Concern</button>
+      <div class="error" id="err"></div>
+      <div class="success" id="ok"></div>
+    </div>
+  </div>
+<script src="app.js"></script>
+<script src="lang.js"></script>
+  <script>
+    const u = requireRole('employee');
+    document.getElementById('nav').innerHTML = navHTML(u);
+    if (!policyOK()) location.href = 'privacy.html';
+    const $ = id => document.getElementById(id);
+
+$('send').onclick = async () => {
+  $('err').textContent = '';
+  const type = $('type').value;
+  const desc = $('desc').value.trim();
+  if (!type || !desc) return $('err').textContent = 'Please choose a type and fill in the description.';
+  
+if (!confirm('Before submitting: have you read and do you agree to the Privacy & Data Policy? Your identity stays confidential and is only accessed for an authorized investigation.')) return;
+  $('send').disabled = true;
+  const evidence = await readFiles($('files').files);
+  if (evidence.some(e => e.tooBig)) {
+    $('send').disabled = false;
+    return $('err').textContent = 'Each file must be under 1 MB. Please choose smaller files.';
+  }
+
+  const report = {
+    id: newCaseId(),
+    owner: u.email,
+    type, title: type, desc,
+    evidence,
+    status: 'New',
+    priority: 'Moderate',
+    date: new Date().toLocaleString(),
+    created: Date.now()
+  };
+  try { saveReport(report); }
+  catch (e) {
+    $('send').disabled = false;
+    return $('err').textContent = 'Storage is full. Try fewer or smaller files.';
+  }
+  notify(u.email, 'Your concern ' + report.id + ' was submitted successfully.');
+  notify('hr@company.com', 'New concern received: ' + report.id + ' (' + type + ').');
+
+  $('ok').textContent = 'Submitted! Your case number is ' + report.id + '. Redirecting...';
+  setTimeout(() => location.href = 'my-reports.html', 1500);
+};
+  </script>
+</body>
+</html>

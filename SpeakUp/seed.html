@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sample Data</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="card">
+    <h1>Sample Data</h1>
+    <p>Load demo reports into the history.</p>
+    <button class="btn" id="load">Load sample reports</button>
+    <button class="btn alt" id="clear">Remove sample reports</button>
+    <div class="success" id="msg"></div>
+    <a class="btn alt" href="index.html">Go to Login</a>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const ago = d => Date.now() - d * 86400000;
+    const when = d => new Date(ago(d)).toLocaleString();
+    const $ = id => document.getElementById(id);
+
+    // Change these emails to match YOUR employee accounts
+    const MARIA = 'maria@company.com', JUAN = 'juan@company.com', ANA = 'ana@company.com', JAY = 'jay@company.com';
+
+    // [owner, type, description, status, priority, daysAgo, resolution]
+    const DATA = [
+      [MARIA,'Bullying','A coworker keeps making humiliating jokes about me in front of the team during meetings.','Under Investigation','Difficult',3,''],
+      [JUAN,'Safety Concern','The fire exit near the warehouse is blocked by boxes and nobody has moved them for weeks.','Under Review','Moderate',6,''],
+      [ANA,'Unfair Treatment','My supervisor assigns overtime only to the same few people, even when others volunteer.','New','Moderate',1,''],
+      [JUAN,'Discrimination','Job postings for our department seem to prefer one gender.','New','Difficult',2,''],
+      [ANA,'Harassment','A colleague keeps sending me unwanted messages after work hours.','Under Review','Difficult',8,''],
+      [MARIA,'Discrimination','I was passed over for a training opportunity because of my age.','Resolved','Difficult',40,'HR interviewed the people involved and confirmed the selection was not based on merit. The training slot was reassigned and the manager received a written warning and anti-discrimination training.'],
+      [JUAN,'Workplace Conflict','Two team leads keep arguing about schedules and it affects our daily tasks.','Resolved','Easy',55,'HR held a mediation session. Both leads agreed on a shared schedule, and a weekly check-in was set up.'],
+      [ANA,'Other','The break room aircon has been broken for a month.','Resolved','Easy',70,'Facilities repaired the aircon unit. A monthly maintenance check was added.'],
+      [MARIA,'Unfair Treatment','I believe my performance rating was lowered without any explanation.','Unsubstantiated','Moderate',85,'HR reviewed the rating records and the evaluation form. There was not enough evidence to confirm unfair treatment. The employee may request a performance review meeting.'],
+      [JUAN,'Bullying','A colleague mocks my accent in front of others.','Dismissed','Easy',100,'The concern was withdrawn by the employee after an informal talk with the colleague. No further action needed.'],
+      [ANA,'Safety Concern','Wet floor near the pantry has no warning sign and people keep slipping.','Resolved','Easy',25,'Warning signs were placed and the floor drainage was fixed. Cleaning staff were reminded to put out signs.'],
+      [MARIA,'Harassment','A supervisor makes uncomfortable comments about my appearance.','Under Investigation','Difficult',12,'']
+      ,
+[JAY,'Unfair Treatment','My shift schedule was changed several times without notice, while others kept fixed schedules.','Under Review','Moderate',5,''],
+[JAY,'Safety Concern','The ladder in the storage room is damaged and still being used.','Resolved','Easy',30,'The damaged ladder was removed and replaced. A monthly equipment inspection was added to the maintenance checklist.'],
+[JAY,'Bullying','A teammate regularly excludes me from group chats and meetings related to my work.','New','Moderate',2,'']
+    ];
+
+    $('load').onclick = () => {
+      const users = DB.get('users', []);
+     [[MARIA,'Maria Santos'],[JUAN,'Juan Dela Cruz'],[ANA,'Ana Reyes'],[JAY,'Jay M']].forEach(p => {
+        if (!users.find(u => u.email === p[0]))
+          users.push({ name: p[1], email: p[0], password: 'pass123', role: 'employee' });
+      });
+      DB.set('users', users);
+
+      const reports = allReports().filter(r => !r.sample);
+      const notifs = DB.get('notifications', []).filter(n => !n.sample);
+
+      DATA.forEach((d, i) => {
+        const id = 'SU-D' + String(i + 1).padStart(2, '0');
+        const r = {
+          id, owner: d[0], type: d[1], title: d[1], desc: d[2],
+          evidence: [], status: d[3], priority: d[4],
+          date: when(d[5]), created: ago(d[5]), sample: true
+        };
+        if (d[6]) r.resolution = d[6];
+        reports.push(r);
+        notifs.push({ email: 'hr@company.com', text: 'New concern received: ' + id + ' (' + d[1] + ').', date: when(d[5]), read: true, sample: true });
+        notifs.push({ email: d[0], text: 'Your concern ' + id + ' was submitted successfully.', date: when(d[5]), read: true, sample: true });
+        if (d[3] !== 'New')
+          notifs.push({ email: d[0], text: 'Your concern ' + id + ' is now: ' + d[3] + '.', date: when(Math.max(d[5] - 1, 0)), read: false, sample: true });
+      });
+
+      reports.sort((a, b) => b.created - a.created);
+      DB.set('reports', reports);
+      DB.set('notifications', notifs);
+      $('msg').textContent = 'Done! 12 sample concerns loaded.';
+    };
+
+    $('clear').onclick = () => {
+      DB.set('reports', allReports().filter(r => !r.sample));
+      DB.set('notifications', DB.get('notifications', []).filter(n => !n.sample));
+      $('msg').textContent = 'Sample reports removed.';
+    };
+  </script>
+</body>
+</html>
