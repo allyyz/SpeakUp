@@ -9,17 +9,18 @@
 <body>
   <div class="card">
     <h1>Reset Reports</h1>
-    <p>This permanently deletes all reports and notifications in this browser. Accounts are kept.</p>
+    <p>This permanently deletes all reports and notifications for everyone. Accounts are kept.</p>
     <button class="btn" id="r1">Delete all reports and notifications</button>
     <div class="success" id="msg"></div>
     <a class="btn alt" href="index.html">Go to Login</a>
   </div>
 
+  <script src="app.js"></script>
   <script>
     document.getElementById('r1').onclick = () => {
-      if (!confirm('Delete ALL reports and notifications? Accounts will be kept.')) return;
-      localStorage.removeItem('reports');
-      localStorage.removeItem('notifications');
+      if (!confirm('Delete ALL reports and notifications for everyone? Accounts will be kept.')) return;
+      DB.set('reports', []);
+      DB.set('notifications', []);
       document.getElementById('msg').textContent = 'Done. All reports and notifications were deleted.';
     };
   </script>

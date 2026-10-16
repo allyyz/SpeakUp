@@ -55,7 +55,7 @@ if (!confirm('Before submitting: have you read and do you agree to the Privacy &
   const evidence = await readFiles($('files').files);
   if (evidence.some(e => e.tooBig)) {
     $('send').disabled = false;
-    return $('err').textContent = 'Each file must be under 1 MB. Please choose smaller files.';
+    return $('err').textContent = 'Each file must be under 150 KB. Please choose smaller files.';
   }
 
   const report = {

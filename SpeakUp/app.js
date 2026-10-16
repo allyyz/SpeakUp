@@ -1,6 +1,56 @@
+const CLOUD = {
+  project: 'speakup-dcdee',
+  key: 'AIzaSyDSpsuheM9f7zX8HMSqHQsl_tZ0dy4yd-A',
+  shared: ['users', 'directory', 'reports', 'notifications']
+};
+const CLOUD_URL = 'https://firestore.googleapis.com/v1/projects/' + CLOUD.project + '/databases/(default)/documents/kv';
+const cloudCache = {};
+
+function cloudReq(method, url, body) {
+  const x = new XMLHttpRequest();
+  x.open(method, url, false);
+  x.setRequestHeader('Content-Type', 'application/json');
+  x.send(body ? JSON.stringify(body) : null);
+  if (x.status < 200 || x.status >= 300) throw new Error(x.status + ' ' + x.responseText);
+  return JSON.parse(x.responseText || '{}');
+}
+
+(function cloudLoad() {
+  try {
+    let more = '';
+    do {
+      const r = cloudReq('GET', CLOUD_URL + '?pageSize=300&key=' + CLOUD.key + more);
+      (r.documents || []).forEach(d => {
+        cloudCache[d.name.split('/').pop()] = d.fields.v.stringValue;
+      });
+      more = r.nextPageToken ? '&pageToken=' + encodeURIComponent(r.nextPageToken) : '';
+    } while (more);
+  } catch (e) { console.error('Cloud load failed', e); }
+})();
+
 const DB = {
-  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
-  set(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+  get(k, d) {
+    try {
+      const raw = CLOUD.shared.includes(k) ? cloudCache[k] : localStorage.getItem(k);
+      if (raw == null) return d;
+      return JSON.parse(raw) ?? d;
+    } catch (e) { return d; }
+  },
+  set(k, v) {
+    const s = JSON.stringify(v);
+    if (CLOUD.shared.includes(k)) {
+      cloudCache[k] = s;
+      try {
+        cloudReq('PATCH', CLOUD_URL + '/' + k + '?key=' + CLOUD.key,
+          { fields: { v: { stringValue: s } } });
+      } catch (e) {
+        alert('Cannot save online. Please check your internet connection.');
+        throw e;
+      }
+    } else {
+      localStorage.setItem(k, s);
+    }
+  }
 };
 
 (function seed() {
@@ -89,7 +139,7 @@ function stepsHTML(status) {
 }
 
 function readFiles(fileList) {
-  const MAX = 1024 * 1024;
+  const MAX = 150 * 1024;
   return Promise.all(Array.from(fileList).map(f => new Promise(res => {
     if (f.size > MAX) return res({ name: f.name, tooBig: true });
     const rd = new FileReader();
