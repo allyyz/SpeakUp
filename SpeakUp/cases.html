@@ -10,13 +10,19 @@
   <div class="topbar" id="nav"></div>
   <div class="wrap">
     <h2>Case Management</h2>
+    <div class="panel prio-guide">
+  <h3>How priority works</h3>
+  <p><small>HR sets the difficulty level of each case. Employees do not choose it.</small></p>
+  <p><span class="badge p-Easy">Easy</span> A simple, clear concern that can be resolved quickly. Example: a broken aircon.</p>
+  <p><span class="badge p-Moderate">Moderate</span> Needs review and talking to the people involved. Example: unfair schedules.</p>
+  <p><span class="badge p-Difficult">Difficult</span> Serious or sensitive, and needs a formal investigation. Example: harassment or discrimination.</p>
+</div>
     <label>Filter by status</label>
     <select id="filter"></select>
     <div id="list"></div>
   </div>
 
 <script src="app.js"></script>
-<script src="lang.js"></script>
   <script>
     const u = requireRole('hr');
     document.getElementById('nav').innerHTML = navHTML(u);

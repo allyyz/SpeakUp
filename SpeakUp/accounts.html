@@ -42,7 +42,6 @@
   </div>
 
 <script src="app.js"></script>
-<script src="lang.js"></script>
   <script>
     const u = requireRole('hr');
     document.getElementById('nav').innerHTML = navHTML(u);
@@ -53,8 +52,8 @@
       const users = DB.get('users', []);
       const pend = users.filter(x => x.role === 'employee' && x.status === 'Pending');
       $('pending').innerHTML = pend.length ? pend.map(x =>
-        `<div class="notif unread"><b>${esc(x.name)}</b> (${esc(x.empId || '')})<br>${esc(x.email)}<br>
-         <button onclick="setStatus('${esc(x.email)}','Approved')">Approve</button>
+        `<div class="notif unread"><b>${esc(x.name)}</b> (${esc(x.empId || '')}) <span class="st st-Pending">Pending</span><br>${esc(x.email)}<br>
+         <button style="background:#16a34a" onclick="setStatus('${esc(x.email)}','Approved')">Approve</button>
          <button style="background:#c0392b" onclick="setStatus('${esc(x.email)}','Rejected')">Reject</button></div>`
       ).join('') : '<p>No pending requests.</p>';
 
@@ -62,7 +61,7 @@
       $('dir').innerHTML = dir.length ? dir.map((d, i) => {
         const acct = users.find(x => x.email === d.email);
         return `<div class="notif"><b>${esc(d.name)}</b> (${esc(d.id)})<br>${esc(d.email)}<br>
-          <small>Account: ${acct ? esc(acct.status || 'Approved') : 'Not registered yet'}</small><br>
+          Account: <span class="st st-${acct ? esc(acct.status || 'Approved') : 'None'}">${acct ? esc(acct.status || 'Approved') : 'Not registered yet'}</span><br>
           <button style="background:#c0392b" onclick="removeDir(${i})">Remove</button></div>`;
       }).join('') : '<p>No employees in the directory yet.</p>';
     }

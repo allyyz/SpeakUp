@@ -54,11 +54,13 @@ const DB = {
 };
 
 (function seed() {
-  const users = DB.get('users', []);
-  if (!users.find(u => u.role === 'hr')) {
-    users.push({ name: 'HR Admin', email: 'hr@company.com', password: 'hr123', role: 'hr' });
-    DB.set('users', users);
-  }
+  try {
+    const users = DB.get('users', []);
+    if (!users.find(u => u.role === 'hr')) {
+      users.push({ name: 'HR Admin', email: 'hr@company.com', password: 'hr123', role: 'hr' });
+      DB.set('users', users);
+    }
+  } catch (e) { console.error('Seed failed', e); }
 })();
 
 const currentUser = () => DB.get('currentUser', null);
@@ -79,10 +81,14 @@ function continueAfterPolicy(u) {
   DB.set('privacy:' + u.email, true);
   location.href = u.role === 'hr' ? 'hr.html' : 'employee.html';
 }
-function logout() { localStorage.removeItem('currentUser'); sessionStorage.removeItem('policyOK'); location.href = 'index.html'; }
+function logout() {
+  localStorage.removeItem('currentUser');
+  sessionStorage.removeItem('policyOK');
+  location.href = 'index.html';
+}
 
-const STATUSES = ['New', 'Under Review', 'Under Investigation', 'Resolved', 'Unsubstantiated', 'Dismissed'];
-const CLOSED = ['Resolved', 'Unsubstantiated', 'Dismissed'];
+const STATUSES = ['New', 'Under Review', 'Under Investigation', 'Resolved', 'Dismissed'];
+const CLOSED = ['Resolved', 'Dismissed'];
 const PRIORITIES = ['Easy', 'Moderate', 'Difficult'];
 const allReports = () => DB.get('reports', []);
 const myReports = u => allReports().filter(r => r.owner === u.email && !r.hidden);
@@ -132,7 +138,7 @@ function lastMonths(count) {
 
 function stepsHTML(status) {
   const flow = ['New', 'Under Review', 'Under Investigation'];
-  const end = (status === 'Unsubstantiated' || status === 'Dismissed') ? status : 'Resolved';
+  const end = status === 'Dismissed' ? 'Dismissed' : 'Resolved';
   const all = flow.concat(end);
   const idx = all.indexOf(status);
   return all.map((s, i) => `<div class="${i <= idx ? 'done' : ''}">${s}</div>`).join('');
@@ -162,19 +168,15 @@ function evidenceHTML(r) {
 const directory = () => DB.get('directory', []);
 function saveDirectory(list) { DB.set('directory', list); }
 
-(function migratePriority() {
-  const map = { Low: 'Easy', Medium: 'Moderate', High: 'Difficult' };
-  const list = DB.get('reports', []);
-  let changed = false;
-  list.forEach(r => { if (map[r.priority]) { r.priority = map[r.priority]; changed = true; } });
-  if (changed) DB.set('reports', list);
-})();
+function pendingCount() {
+  return DB.get('users', []).filter(x => x.role === 'employee' && x.status === 'Pending').length;
+}
 
 const LOGO = '<svg width="30" height="30" viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#fff"/><path d="M8 9h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H15l-5 4v-4H8a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" fill="#0fa3a3"/><rect x="15" y="12" width="2" height="5" rx="1" fill="#fff"/><circle cx="16" cy="19" r="1.2" fill="#fff"/></svg>';
 
 function navHTML(u) {
   const links = u.role === 'hr'
-    ? [['hr.html','Dashboard'],['cases.html','Cases'],['trends.html','Trends'],['accounts.html','Accounts']]
+    ? [['hr.html','Dashboard'],['cases.html','Cases'],['trends.html','Trends'],['accounts.html','Accounts' + (pendingCount() ? ' (' + pendingCount() + ')' : '')]]
     : [['employee.html','Dashboard'],['submit.html','Submit'],['my-reports.html','My Reports']];
   const unread = myNotifs(u).filter(n => !n.read).length;
   links.push(['notifications.html', 'Notifications' + (unread ? ' (' + unread + ')' : '')],
@@ -183,3 +185,16 @@ function navHTML(u) {
     links.map(l => `<a href="${l[0]}">${l[1]}</a>`).join('') +
     '<a href="#" onclick="logout()">Logout</a>';
 }
+
+(function migrations() {
+  try {
+    const pmap = { Low: 'Easy', Medium: 'Moderate', High: 'Difficult' };
+    const list = DB.get('reports', []);
+    let changed = false;
+    list.forEach(r => {
+      if (pmap[r.priority]) { r.priority = pmap[r.priority]; changed = true; }
+      if (r.status === 'Unsubstantiated') { r.status = 'Dismissed'; changed = true; }
+    });
+    if (changed) DB.set('reports', list);
+  } catch (e) { console.error('Migration failed', e); }
+})();

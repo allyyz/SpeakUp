@@ -8,19 +8,18 @@
 </head>
 <body>
   <div class="topbar" id="nav"></div>
+
   <div class="wrap">
     <h2 id="hello"></h2>
-    <div class="stats six" id="stats"></div>
-    <div class="actions">
-      <a href="cases.html">Manage Cases</a>
-      <a href="trends.html">Reports & Trends</a>
-    </div>
-    <div class="panel"><h3>Latest Cases</h3><div id="recent"></div></div>
-    <div class="panel"><h3>Notifications</h3><div id="notifs"></div></div>
+
+    <h3 class="group-title">In progress</h3>
+    <div class="stats" id="open"></div>
+
+    <h3 class="group-title">Closed</h3>
+    <div class="stats" id="closed"></div>
   </div>
 
-<script src="app.js"></script>
-<script src="lang.js"></script>
+  <script src="app.js"></script>
   <script>
     const u = requireRole('hr');
     document.getElementById('nav').innerHTML = navHTML(u);
@@ -28,21 +27,18 @@
 
     document.getElementById('hello').textContent = 'Welcome, ' + u.name;
     const all = allReports();
-    const box = (label, n) => `<div class="stat"><span>${n}</span>${label}</div>`;
-    document.getElementById('stats').innerHTML =
-  box('Total Cases', all.length) +
-  STATUSES.map(s => box(s, all.filter(r => r.status === s).length)).join('');
+    const n = s => all.filter(r => r.status === s).length;
+    const box = (label, num, cls) => `<div class="stat ${cls}"><span>${num}</span>${label}</div>`;
 
-    document.getElementById('recent').innerHTML = all.length
-      ? all.slice(0, 5).map(r =>
-          `<p><b>${esc(r.id)}</b> · ${esc(r.title)}<br>
-           <span class="badge">${esc(r.type)}</span> <span class="badge">${esc(r.status)}</span></p>`).join('')
-      : '<p>No cases yet.</p>';
+    document.getElementById('open').innerHTML =
+      box('New', n('New'), 'c-new') +
+      box('Under Review', n('Under Review'), 'c-review') +
+      box('Under Investigation', n('Under Investigation'), 'c-invest');
 
-    const n = myNotifs(u);
-    document.getElementById('notifs').innerHTML = n.length
-      ? n.slice(0, 5).map(x => `<p>${esc(x.text)}<br><small>${esc(x.date)}</small></p>`).join('')
-      : '<p>No notifications yet.</p>';
+    document.getElementById('closed').innerHTML =
+      box('Resolved', n('Resolved'), 'c-resolved') +
+      box('Dismissed', n('Dismissed'), 'c-dismissed') +
+      box('Total Cases', all.length, 'c-total');
   </script>
 </body>
 </html>
